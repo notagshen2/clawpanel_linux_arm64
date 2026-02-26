@@ -48,6 +48,7 @@
 
   --border-primary: rgba(255, 255, 255, 0.08);
   --border-secondary: rgba(255, 255, 255, 0.04);
+  --border-focus: rgba(129, 140, 248, 0.5);
 
   --text-primary: #e4e4e7;
   --text-secondary: #a1a1aa;

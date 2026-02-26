@@ -145,11 +145,17 @@
 .file-item.active { background: var(--accent-muted); color: var(--accent-hover); }
 
 .editor-area {
-  background: var(--bg-card);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  border: none;
+  resize: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  padding: var(--space-lg);
 }
 
 .editor-toolbar {

@@ -44,6 +44,12 @@
   font-weight: 700;
 }
 
+.stat-card-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
 /* 状态点 */
 .status-dot {
   width: 8px;

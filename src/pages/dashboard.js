@@ -64,9 +64,7 @@ function renderStatCards(page, services, version) {
         <span class="status-dot ${gw?.running ? 'running' : 'stopped'}"></span>
       </div>
       <div class="stat-card-value">${gw?.running ? '运行中' : '已停止'}</div>
-      <div style="font-size:var(--font-size-xs);color:var(--text-tertiary);margin-top:4px">
-        ${gw?.pid ? 'PID: ' + gw.pid : ''}
-      </div>
+      <div class="stat-card-meta">${gw?.pid ? 'PID: ' + gw.pid : ''}</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-header">
@@ -74,7 +72,7 @@ function renderStatCards(page, services, version) {
         <span class="status-dot ${guardian?.running ? 'running' : 'stopped'}"></span>
       </div>
       <div class="stat-card-value">${guardian?.running ? '运行中' : '已停止'}</div>
-      <div style="font-size:var(--font-size-xs);color:var(--text-tertiary);margin-top:4px">健康监控</div>
+      <div class="stat-card-meta">健康监控</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-header">
@@ -82,16 +80,14 @@ function renderStatCards(page, services, version) {
         <span class="status-dot ${watchdog?.running ? 'running' : 'stopped'}"></span>
       </div>
       <div class="stat-card-value">${watchdog?.running ? '运行中' : '已停止'}</div>
-      <div style="font-size:var(--font-size-xs);color:var(--text-tertiary);margin-top:4px">看门狗</div>
+      <div class="stat-card-meta">看门狗</div>
     </div>
     <div class="stat-card">
       <div class="stat-card-header">
         <span class="stat-card-label">版本</span>
       </div>
       <div class="stat-card-value">${version.current || '未知'}</div>
-      <div style="font-size:var(--font-size-xs);color:var(--text-tertiary);margin-top:4px">
-        服务 ${runningCount}/${services.length} 运行中
-      </div>
+      <div class="stat-card-meta">服务 ${runningCount}/${services.length} 运行中</div>
     </div>
   `
 }
