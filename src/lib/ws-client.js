@@ -172,9 +172,9 @@ export class WsClient {
         const errCode = msg.error?.code
         console.error('[ws] connect 失败:', errMsg, errCode)
 
-        // 如果是配对错误，尝试自动配对
-        if (errCode === 'NOT_PAIRED' || errCode === 'PAIRING_REQUIRED') {
-          console.log('[ws] 检测到未配对，尝试自动配对...')
+        // 如果是配对/origin 错误，尝试自动配对
+        if (errCode === 'NOT_PAIRED' || errCode === 'PAIRING_REQUIRED' || /origin not allowed/i.test(errMsg)) {
+          console.log('[ws] 检测到配对/origin 错误，尝试自动修复...', errCode || errMsg)
           this._autoPairAndReconnect()
           return
         }

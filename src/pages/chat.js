@@ -199,7 +199,7 @@ function bindConnectOverlay(page) {
         if (desc) desc.textContent = '修复完成，正在重连...'
         // 断开旧连接，重新发起
         wsClient.disconnect()
-        setTimeout(() => connectGateway(), 1000)
+        setTimeout(() => connectGateway(), 3000)
       } catch (e) {
         if (desc) desc.textContent = '修复失败: ' + (e.message || e)
       } finally {
@@ -304,6 +304,11 @@ function renderAttachments() {
 
 async function connectGateway() {
   try {
+    // 清理旧的订阅，避免重复监听
+    if (_unsubStatus) { _unsubStatus(); _unsubStatus = null }
+    if (_unsubReady) { _unsubReady(); _unsubReady = null }
+    if (_unsubEvent) { _unsubEvent(); _unsubEvent = null }
+
     // 订阅状态变化（订阅式，返回 unsub）
     _unsubStatus = wsClient.onStatusChange((status, errorMsg) => {
       if (!_pageActive) return
