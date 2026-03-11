@@ -391,7 +391,10 @@ pub async fn save_messaging_platform(
                 .unwrap_or("")
                 .trim();
             if !gateway_password.is_empty() {
-                entry.insert("gatewayPassword".into(), Value::String(gateway_password.into()));
+                entry.insert(
+                    "gatewayPassword".into(),
+                    Value::String(gateway_password.into()),
+                );
             }
 
             channels_map.insert(storage_key, Value::Object(entry));
@@ -712,7 +715,9 @@ fn ensure_plugin_allowed(cfg: &mut Value, plugin_id: &str) -> Result<(), String>
 }
 
 fn plugin_backup_root() -> PathBuf {
-    super::openclaw_dir().join("backups").join("plugin-installs")
+    super::openclaw_dir()
+        .join("backups")
+        .join("plugin-installs")
 }
 
 fn qqbot_plugin_dir() -> PathBuf {
@@ -801,7 +806,8 @@ fn repair_qqbot_package_manifest(plugin_dir: &Path) -> Result<String, String> {
         return Err("QQBot 插件缺少 package.json".into());
     }
 
-    let raw = fs::read_to_string(&package_path).map_err(|e| format!("读取 package.json 失败: {e}"))?;
+    let raw =
+        fs::read_to_string(&package_path).map_err(|e| format!("读取 package.json 失败: {e}"))?;
     let mut pkg: Value =
         serde_json::from_str(&raw).map_err(|e| format!("解析 package.json 失败: {e}"))?;
 
@@ -952,7 +958,10 @@ pub async fn install_channel_plugin(
     }
     if had_existing_plugin {
         fs::rename(&plugin_dir, &plugin_backup).map_err(|e| format!("备份旧插件失败: {e}"))?;
-        let _ = app.emit("plugin-log", format!("检测到旧插件目录，已备份 {}", plugin_dir.display()));
+        let _ = app.emit(
+            "plugin-log",
+            format!("检测到旧插件目录，已备份 {}", plugin_dir.display()),
+        );
     }
 
     if config_backup.exists() {
@@ -970,7 +979,8 @@ pub async fn install_channel_plugin(
     let mut child = match spawn_result {
         Ok(child) => child,
         Err(e) => {
-            let _ = cleanup_failed_plugin_install(plugin_id, had_existing_plugin, had_existing_config);
+            let _ =
+                cleanup_failed_plugin_install(plugin_id, had_existing_plugin, had_existing_config);
             return Err(format!("启动 openclaw 失败: {}", e));
         }
     };
@@ -1004,14 +1014,21 @@ pub async fn install_channel_plugin(
         .wait()
         .map_err(|e| format!("等待安装进程失败: {}", e))?;
     if !status.success() {
-        let rollback_err = cleanup_failed_plugin_install(plugin_id, had_existing_plugin, had_existing_config)
-            .err()
-            .unwrap_or_default();
-        let _ = app.emit("plugin-log", format!("插件 {} 安装失败，已回退", package_name));
+        let rollback_err =
+            cleanup_failed_plugin_install(plugin_id, had_existing_plugin, had_existing_config)
+                .err()
+                .unwrap_or_default();
+        let _ = app.emit(
+            "plugin-log",
+            format!("插件 {} 安装失败，已回退", package_name),
+        );
         return if rollback_err.is_empty() {
             Err(format!("插件安装失败：{}", package_name))
         } else {
-            Err(format!("插件安装失败：{}；回退失败：{}", package_name, rollback_err))
+            Err(format!(
+                "插件安装失败：{}；回退失败：{}",
+                package_name, rollback_err
+            ))
         };
     }
 
@@ -1023,10 +1040,14 @@ pub async fn install_channel_plugin(
     })();
 
     if let Err(err) = finalize {
-        let rollback_err = cleanup_failed_plugin_install(plugin_id, had_existing_plugin, had_existing_config)
-            .err()
-            .unwrap_or_default();
-        let _ = app.emit("plugin-log", format!("插件 {} 安装后收尾失败，已回退: {}", package_name, err));
+        let rollback_err =
+            cleanup_failed_plugin_install(plugin_id, had_existing_plugin, had_existing_config)
+                .err()
+                .unwrap_or_default();
+        let _ = app.emit(
+            "plugin-log",
+            format!("插件 {} 安装后收尾失败，已回退: {}", package_name, err),
+        );
         return if rollback_err.is_empty() {
             Err(format!("插件安装失败：{err}"))
         } else {
@@ -1070,7 +1091,8 @@ pub async fn install_qqbot_plugin(app: tauri::AppHandle) -> Result<String, Strin
         let _ = fs::remove_dir_all(&plugin_backup);
     }
     if had_existing_plugin {
-        fs::rename(&plugin_dir, &plugin_backup).map_err(|e| format!("备份旧 QQBot 插件失败: {e}"))?;
+        fs::rename(&plugin_dir, &plugin_backup)
+            .map_err(|e| format!("备份旧 QQBot 插件失败: {e}"))?;
     }
 
     if config_backup.exists() {
@@ -1125,7 +1147,10 @@ pub async fn install_qqbot_plugin(app: tauri::AppHandle) -> Result<String, Strin
 
     let finalize = (|| -> Result<(), String> {
         if !status.success() {
-            let _ = app.emit("plugin-log", "安装器返回失败，正在尝试自动修复 QQBot 插件...");
+            let _ = app.emit(
+                "plugin-log",
+                "安装器返回失败，正在尝试自动修复 QQBot 插件...",
+            );
         }
 
         let entry = repair_qqbot_package_manifest(&plugin_dir)?;
@@ -1134,7 +1159,10 @@ pub async fn install_qqbot_plugin(app: tauri::AppHandle) -> Result<String, Strin
         let mut cfg = super::config::load_openclaw_json()?;
         ensure_plugin_allowed(&mut cfg, "qqbot")?;
         super::config::save_openclaw_json(&cfg)?;
-        let _ = app.emit("plugin-log", "已补齐 plugins.allow 与 entries.qqbot.enabled");
+        let _ = app.emit(
+            "plugin-log",
+            "已补齐 plugins.allow 与 entries.qqbot.enabled",
+        );
         Ok(())
     })();
 
@@ -1152,9 +1180,10 @@ pub async fn install_qqbot_plugin(app: tauri::AppHandle) -> Result<String, Strin
         }
         Err(err) => {
             let _ = app.emit("plugin-log", format!("自动修复失败，正在回退: {err}"));
-            let rollback_err = cleanup_failed_qqbot_install(had_existing_plugin, had_existing_config)
-                .err()
-                .unwrap_or_default();
+            let rollback_err =
+                cleanup_failed_qqbot_install(had_existing_plugin, had_existing_config)
+                    .err()
+                    .unwrap_or_default();
             let _ = app.emit("plugin-progress", 100);
             let _ = app.emit("plugin-log", "QQBot 插件安装失败，已自动回退到安装前状态");
             if rollback_err.is_empty() {

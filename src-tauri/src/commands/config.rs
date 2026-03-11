@@ -205,7 +205,11 @@ fn sync_providers_to_agent_models(config: &Value) {
 
         let mut changed = false;
 
-        if models_json.get("providers").and_then(|p| p.as_object()).is_none() {
+        if models_json
+            .get("providers")
+            .and_then(|p| p.as_object())
+            .is_none()
+        {
             if let Some(root) = models_json.as_object_mut() {
                 root.insert("providers".into(), json!({}));
                 changed = true;
@@ -1362,7 +1366,10 @@ pub async fn test_model(
             req.send()
         }
         "google-gemini" => {
-            let url = format!("{}/models/{}:generateContent?key={}", base, model_id, api_key);
+            let url = format!(
+                "{}/models/{}:generateContent?key={}",
+                base, model_id, api_key
+            );
             let body = json!({
                 "contents": [{"role": "user", "parts": [{"text": "Hi"}]}]
             });
@@ -1532,7 +1539,8 @@ pub async fn list_remote_models(
     let ids = serde_json::from_str::<serde_json::Value>(&text)
         .ok()
         .and_then(|v| {
-            let mut ids: Vec<String> = if let Some(data) = v.get("data").and_then(|d| d.as_array()) {
+            let mut ids: Vec<String> = if let Some(data) = v.get("data").and_then(|d| d.as_array())
+            {
                 data.iter()
                     .filter_map(|m| m.get("id").and_then(|id| id.as_str()).map(String::from))
                     .collect()
@@ -1730,9 +1738,9 @@ pub async fn check_panel_update() -> Result<Value, String> {
                 result.insert("latest".into(), Value::String(tag));
                 result.insert(
                     "url".into(),
-                    json.get("html_url").cloned().unwrap_or(Value::String(
-                        releases_url.to_string(),
-                    )),
+                    json.get("html_url")
+                        .cloned()
+                        .unwrap_or(Value::String(releases_url.to_string())),
                 );
                 result.insert("source".into(), Value::String(source.to_string()));
                 result.insert(
@@ -1823,7 +1831,16 @@ pub async fn auto_install_git(app: tauri::AppHandle) -> Result<String, String> {
         // 尝试 winget
         let _ = app.emit("upgrade-log", "尝试使用 winget 安装 Git...");
         let mut child = Command::new("winget")
-            .args(["install", "--id", "Git.Git", "-e", "--source", "winget", "--accept-package-agreements", "--accept-source-agreements"])
+            .args([
+                "install",
+                "--id",
+                "Git.Git",
+                "-e",
+                "--source",
+                "winget",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+            ])
             .creation_flags(0x08000000)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -1846,12 +1863,16 @@ pub async fn auto_install_git(app: tauri::AppHandle) -> Result<String, String> {
             }
         }
         let _ = handle.join();
-        let status = child.wait().map_err(|e| format!("等待 winget 完成失败: {e}"))?;
+        let status = child
+            .wait()
+            .map_err(|e| format!("等待 winget 完成失败: {e}"))?;
         if status.success() {
             let _ = app.emit("upgrade-log", "Git 安装成功！");
             return Ok("Git 已通过 winget 安装".to_string());
         }
-        return Err("winget 安装 Git 失败，请手动下载安装: https://git-scm.com/downloads".to_string());
+        return Err(
+            "winget 安装 Git 失败，请手动下载安装: https://git-scm.com/downloads".to_string(),
+        );
     }
 
     #[cfg(target_os = "macos")]
@@ -1868,22 +1889,48 @@ pub async fn auto_install_git(app: tauri::AppHandle) -> Result<String, String> {
             let _ = app.emit("upgrade-log", "Git 安装已触发，请在弹出的窗口中确认安装。");
             return Ok("已触发 xcode-select 安装，请在弹窗中确认".to_string());
         }
-        return Err("xcode-select 安装失败，请手动安装 Xcode Command Line Tools 或 brew install git".to_string());
+        return Err(
+            "xcode-select 安装失败，请手动安装 Xcode Command Line Tools 或 brew install git"
+                .to_string(),
+        );
     }
 
     #[cfg(target_os = "linux")]
     {
         // 检测包管理器
-        let pkg_mgr = if Command::new("apt-get").arg("--version").output().map(|o| o.status.success()).unwrap_or(false) {
+        let pkg_mgr = if Command::new("apt-get")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
             "apt"
-        } else if Command::new("yum").arg("--version").output().map(|o| o.status.success()).unwrap_or(false) {
+        } else if Command::new("yum")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
             "yum"
-        } else if Command::new("dnf").arg("--version").output().map(|o| o.status.success()).unwrap_or(false) {
+        } else if Command::new("dnf")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
             "dnf"
-        } else if Command::new("pacman").arg("--version").output().map(|o| o.status.success()).unwrap_or(false) {
+        } else if Command::new("pacman")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
             "pacman"
         } else {
-            return Err("未找到包管理器，请手动安装 Git: sudo apt install git 或 sudo yum install git".to_string());
+            return Err(
+                "未找到包管理器，请手动安装 Git: sudo apt install git 或 sudo yum install git"
+                    .to_string(),
+            );
         };
 
         let (cmd_name, args): (&str, Vec<&str>) = match pkg_mgr {
@@ -1894,7 +1941,10 @@ pub async fn auto_install_git(app: tauri::AppHandle) -> Result<String, String> {
             _ => return Err("不支持的包管理器".to_string()),
         };
 
-        let _ = app.emit("upgrade-log", format!("执行: {} {}", cmd_name, args.join(" ")));
+        let _ = app.emit(
+            "upgrade-log",
+            format!("执行: {} {}", cmd_name, args.join(" ")),
+        );
         let mut child = Command::new(cmd_name)
             .args(&args)
             .stdout(Stdio::piped())
