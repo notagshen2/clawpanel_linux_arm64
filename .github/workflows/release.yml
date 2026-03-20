@@ -1,5 +1,5 @@
 # ClawPanel 发布构建工作流
-# 推送 v* 标签时自动构建跨平台产物并创建 GitHub Release
+# 推送 v* 标签时自动构建 Linux ARM64 的 deb 并创建 GitHub Release
 name: Release
 
 on:
@@ -15,32 +15,11 @@ on:
         default: 'v1.0.0'
 
 jobs:
-  # ── 跨平台构建 job ─────────────────────────────────────────────────────────
   build:
-    name: 构建 (${{ matrix.platform.name }})
-    runs-on: ${{ matrix.platform.os }}
+    name: 构建 (Linux ARM64 / deb)
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - name: macOS (Apple Silicon)
-            os: macos-latest
-            args: --target aarch64-apple-darwin
-            rust_target: aarch64-apple-darwin
-          - name: macOS (Intel)
-            os: macos-latest
-            args: --target x86_64-apple-darwin
-            rust_target: x86_64-apple-darwin
-          - name: Linux (x64)
-            os: ubuntu-latest
-            args: ""
-            rust_target: ""
-          - name: Windows (x64)
-            os: windows-latest
-            args: ""
-            rust_target: ""
 
     steps:
       - name: 签出代码
@@ -49,7 +28,6 @@ jobs:
           fetch-depth: 0
 
       - name: 设置版本标签
-        id: vars
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -69,17 +47,14 @@ jobs:
 
       - name: 安装 Rust 工具链
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform.rust_target }}
 
       - name: Rust 编译缓存
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
-          key: ${{ matrix.platform.name }}
+          key: linux-arm64-deb
 
       - name: 安装 Linux 系统依赖
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -94,26 +69,14 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS 代码签名（可选）
-          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Windows 代码签名（可选）
-          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ env.TAG_NAME }}
           releaseName: "ClawPanel ${{ env.TAG_NAME }}"
-          releaseBody: "正在构建所有平台安装包，请稍候..."
+          releaseBody: "正在构建 Linux ARM64 的 deb 安装包，请稍候..."
           releaseDraft: false
           prerelease: false
-          args: ${{ matrix.platform.args }}
+          args: --bundles deb
 
-  # ── 所有平台构建完成后，统一更新 Release Notes ─────────────────────────────
-  # 独立 job 确保只执行一次，彻底避免多个 matrix job 的竞争条件
   update-release-notes:
     name: 更新 Release Notes
     needs: build
@@ -150,23 +113,18 @@ jobs:
         run: |
           VERSION="${TAG_NAME#v}"
 
-          # 构建前端
           npm ci
           npm run build
 
-          # 打包 dist 目录为 zip
           cd dist
           zip -r "../web-${VERSION}.zip" .
           cd ..
 
-          # 计算 SHA-256
           HASH=$(sha256sum "web-${VERSION}.zip" | cut -d' ' -f1)
           SIZE=$(stat -c%s "web-${VERSION}.zip" 2>/dev/null || stat -f%z "web-${VERSION}.zip")
 
-          # 上传为 Release Asset
           gh release upload "$TAG_NAME" "web-${VERSION}.zip" --clobber
 
-          # 更新 docs/update/latest.json
           DL_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/web-${VERSION}.zip"
           cat > docs/update/latest.json << EOF
           {
@@ -179,10 +137,8 @@ jobs:
             "releasedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
-          # 去掉 heredoc 缩进
           sed -i 's/^          //' docs/update/latest.json
 
-          # 提交 latest.json 到 main 分支
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/update/latest.json
@@ -199,7 +155,6 @@ jobs:
           VERSION="${TAG_NAME#v}"
           DL="https://github.com/${REPO}/releases/download/${TAG_NAME}"
 
-          # ── 生成分类 Changelog ──
           PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v' | sed -n '2p' || echo "")
           if [ -n "$PREV_TAG" ]; then
             RANGE="${PREV_TAG}..HEAD"
@@ -209,7 +164,6 @@ jobs:
             CHANGELOG_HEADER="主要变更"
           fi
 
-          # 按 conventional commit 前缀分类
           get_logs() {
             local prefix="$1"
             if [ -n "$RANGE" ]; then
@@ -243,41 +197,21 @@ jobs:
             CHANGELOG_BODY=$'\n- 常规更新与优化\n'
           fi
 
-          # ── 构建状态 ──
           if [ "$BUILD_RESULT" = "success" ]; then
-            STATUS_BADGE="✅ 全部平台构建成功"
+            STATUS_BADGE="✅ Linux ARM64 deb 构建成功"
           else
-            STATUS_BADGE="⚠️ 部分平台构建失败，请查看 [Actions 日志](https://github.com/${REPO}/actions)"
+            STATUS_BADGE="⚠️ Linux ARM64 deb 构建失败，请查看 [Actions 日志](https://github.com/${REPO}/actions)"
           fi
 
-          # ── 写入 Release Notes ──
           {
             echo "${STATUS_BADGE}"
             echo ""
             echo "## 📥 下载安装"
             echo ""
-            echo "根据你的操作系统选择对应安装包，点击文件名即可下载："
-            echo ""
-            echo "### macOS"
-            echo "| 芯片 | 安装包 |"
-            echo "|------|--------|"
-            echo "| Apple Silicon (M1/M2/M3/M4) | [ClawPanel_${VERSION}_aarch64.dmg](${DL}/ClawPanel_${VERSION}_aarch64.dmg) |"
-            echo "| Intel | [ClawPanel_${VERSION}_x64.dmg](${DL}/ClawPanel_${VERSION}_x64.dmg) |"
-            echo ""
-            echo '> **⚠️ 首次打开提示"无法验证开发者"？** 在终端执行：`sudo xattr -rd com.apple.quarantine /Applications/ClawPanel.app`，或前往 **系统设置 → 隐私与安全性** 点击「仍要打开」。'
-            echo ""
-            echo "### Windows"
+            echo "### Linux ARM64"
             echo "| 格式 | 安装包 |"
             echo "|------|--------|"
-            echo "| EXE 安装器（推荐） | [ClawPanel_${VERSION}_x64-setup.exe](${DL}/ClawPanel_${VERSION}_x64-setup.exe) |"
-            echo "| MSI 安装器 | [ClawPanel_${VERSION}_x64_en-US.msi](${DL}/ClawPanel_${VERSION}_x64_en-US.msi) |"
-            echo ""
-            echo "### Linux"
-            echo "| 格式 | 安装包 |"
-            echo "|------|--------|"
-            echo "| AppImage（免安装） | [ClawPanel_${VERSION}_amd64.AppImage](${DL}/ClawPanel_${VERSION}_amd64.AppImage) |"
-            echo "| DEB（Debian/Ubuntu） | [ClawPanel_${VERSION}_amd64.deb](${DL}/ClawPanel_${VERSION}_amd64.deb) |"
-            echo "| RPM（Fedora/RHEL） | [ClawPanel-${VERSION}-1.x86_64.rpm](${DL}/ClawPanel-${VERSION}-1.x86_64.rpm) |"
+            echo "| DEB（Debian/Ubuntu） | [ClawPanel_${VERSION}_arm64.deb](${DL}/ClawPanel_${VERSION}_arm64.deb) |"
             echo ""
             echo "---"
             echo ""
@@ -288,7 +222,7 @@ jobs:
             echo "3. 如未安装 OpenClaw，按提示一键安装即可"
             echo "4. 安装完成后自动跳转仪表盘，开始使用"
             echo ""
-            echo '> **系统要求**：Node.js 18+（推荐 22 LTS）'
+            echo "> **系统要求**：Linux ARM64，Node.js 18+（推荐 22 LTS）"
             echo ""
             echo "---"
             echo ""
