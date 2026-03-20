@@ -7,7 +7,7 @@ RUN npm install -g @qingchencloud/openclaw-zh --registry https://registry.npmmir
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 
