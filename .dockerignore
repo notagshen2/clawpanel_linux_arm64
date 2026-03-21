@@ -1,4 +1,57 @@
-node_modules
-dist
-.git
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+src-tauri/target/
+
+# Git / CI
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# 编辑器 / 本地工具
+.vscode/
+.idea/
+.windsurf/
+*.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# 日志
 *.log
+tauri-dev.log
+api_doc_mcp.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# 本地临时文件
+.tmp/
+nul
+release_body.md
+release_body.md.bak
+r2-archives/
+
+# 非构建必需内容
+docs/
+tests/
+
+# 内部/临时文件
+BLOCKING_ISSUES_REPORT.md
+__clawapp-chat-ref.js
+LOBSTER-LEGION-ARCHIVE.md
